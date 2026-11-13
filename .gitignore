@@ -36,3 +36,6 @@ desktop.ini
 # Scratch
 *.log
 tmp/
+
+# Working notes for the AI assistant - local only, not part of the deliverable
+CLAUDE.md
