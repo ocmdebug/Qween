@@ -115,13 +115,18 @@ window.App = window.App || {};
   /* ------------------------------------------------------------ decorating */
 
   /**
-   * The confidence meter. ALWAYS rendered when the model gave a number — the
-   * operator asked to see it, so hiding it is not ours to decide. When the
-   * model returned the same value for every field the bar is marked unreliable
-   * (hatched, with a tooltip) rather than removed.
+   * The confidence meter.
+   *
+   * Drawn ONLY when the number was measured by comparing two independent
+   * readings. Every model available here reports a near-flat 0.95 about
+   * itself, and rendering that as a bar implies a precision that does not
+   * exist — worse than showing nothing, because it invites trust. With a
+   * single scan the column stays empty and the banner above the form explains
+   * why.
    */
   function confidenceHTML(def, entry, usable, measured) {
     if (def.type === 'boolean') return '';
+    if (!measured) return '';
     if (typeof entry.confidence !== 'number') {
       return '<span class="conf conf--none" title="' + esc(App.T.confNoneTitle) + '">' +
              esc(App.T.confNone) + '</span>';
@@ -131,11 +136,8 @@ window.App = window.App || {};
     var band = entry.confidence >= (def.critical ? TH.critical : TH.high) ? 'hi'
              : (entry.confidence >= TH.low ? 'mid' : 'lo');
 
-    var title = measured ? App.T.confAgreementTitle
-              : (usable ? App.T.confTitle : App.T.confFlatTitle);
-    return '<span class="conf conf--' + band + (usable ? '' : ' conf--flat') +
-             (measured ? ' conf--measured' : '') +
-             '" title="' + esc(title) + '">' +
+    return '<span class="conf conf--' + band + ' conf--measured" title="' +
+             esc(App.T.confAgreementTitle) + '">' +
              '<i><b style="width:' + pct + '%"></b></i>' +
              '<span class="conf__pct">' + pct + '%</span>' +
            '</span>';

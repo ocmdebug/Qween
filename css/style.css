@@ -687,14 +687,6 @@ select, .text-input {
 .conf--lo  > i > b { background: var(--error); }
 .conf--lo  .conf__pct { color: var(--error); font-weight: 600; }
 
-/* The model gave the same number to every field: show it, but say it is noise. */
-.conf--flat > i > b {
-  background: repeating-linear-gradient(
-    45deg, #b9bbbf 0 3px, #d7d8da 3px 6px
-  );
-}
-.conf--flat .conf__pct { color: var(--ink-faint); font-style: italic; }
-
 .conf--none { color: var(--ink-faint); min-width: 86px; }
 
 /* Measured by agreement, not self-reported: a solid bar you can trust. */

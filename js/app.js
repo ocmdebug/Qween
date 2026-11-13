@@ -574,10 +574,10 @@ window.App = window.App || {};
         text += ' ' + App.T.weakPrimaryWarning;
       }
       dom.confNote.textContent = text;
-    } else if (!spread.usable) {
-      var model = App.Config.modelById(dom.modelSelect.value);
-      dom.confNote.textContent = App.T.confFlatBanner(model ? model.label : dom.modelSelect.value);
     } else {
+      // No second read, so no measured number and no bars. One message covers
+      // it: the old "pick the 235B instead" advice is obsolete — that model
+      // reports a flat value too.
       dom.confNote.textContent = App.T.confSourceSelfReported;
     }
 

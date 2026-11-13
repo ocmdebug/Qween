@@ -211,7 +211,6 @@ window.App = window.App || {};
     noReadout: 'brak odczytu',
     confNone: '—',
     confNoneTitle: 'Model nie podał pewności dla tego pola.',
-    confTitle: 'Pewność modelu dla tego pola (0–100%)',
     confAgreementTitle: 'Zgodność dwóch niezależnych odczytów tego pola. 100% = oba modele przeczytały dokładnie to samo.',
 
     /* --- druga opinia --------------------------------------------------- */
@@ -232,19 +231,12 @@ window.App = window.App || {};
       return 'Pewność zmierzona przez porównanie z modelem ' + (name ? name.label : model) +
              ' — 100% oznacza, że oba odczyty są identyczne.';
     },
-    confSourceSelfReported: 'Pewność podana przez sam model — jest zawodna. Włącz „drugą opinię”, aby ją zmierzyć.',
+    confSourceSelfReported: 'Pewność podana przez sam model jest zawodna — te modele podają niemal identyczną wartość dla każdego pola, więc paski pewności nie są pokazywane. Zaznacz „drugą opinię” przed odczytem, aby zmierzyć pewność porównaniem dwóch odczytów. Walidacja (sumy kontrolne, formaty, zgodność pól) działa niezależnie od tego.',
     weakPrimaryWarning: 'Uwaga: odczyt główny wykonał model 8B — najmniej dokładny. Na próbkach zdarzyło mu się wpisać zmyślony NIP w dokumencie, który go nie zawierał. Zwróć szczególną uwagę na numery identyfikacyjne.',
     verifyFailed: function (reason) {
       return 'Druga opinia się nie powiodła (' + reason + '). Pokazana pewność pochodzi od samego modelu i jest zawodna.';
     },
     criticalTitle: 'Pole krytyczne — wymaga wyższej pewności, zanim zostanie przyjęte automatycznie.',
-    confFlatTitle: 'Model podał tę samą pewność dla wszystkich pól — ta liczba nic nie znaczy.',
-    confFlatBanner: function (model) {
-      return 'Model ' + model + ' podał niemal identyczną pewność dla każdego pola, ' +
-             'więc ta wartość nie niesie informacji. Pola są oceniane wyłącznie na podstawie ' +
-             'walidacji i braków. Model Qwen3 VL 235B różnicuje pewność — wybierz go, ' +
-             'jeśli chcesz korzystać z progów pewności.';
-    },
     aiProposal: 'propozycja modelu',
 
     /* --- zakończenie ---------------------------------------------------- */
