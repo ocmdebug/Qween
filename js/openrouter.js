@@ -13,6 +13,10 @@ window.App = window.App || {};
 
   var KEY_PATTERN = /^sk-or-/;
 
+  /* Backoff for HTTP 429, in ms. Two retries is enough to ride out a burst
+   * without leaving the operator staring at a spinner for a minute. */
+  var RATE_LIMIT_RETRIES = [3000, 8000];
+
   /* ------------------------------------------------------------- key store */
 
   var Key = {
@@ -191,7 +195,13 @@ window.App = window.App || {};
       signal: controller.signal
     }).then(function (response) {
       return response.text().then(function (text) {
-        return { ok: response.ok, status: response.status, text: text };
+        return {
+          ok: response.ok,
+          status: response.status,
+          text: text,
+          // Providers often say how long to wait; honour it rather than guess.
+          retryAfter: parseFloat(response.headers.get('retry-after')) || null
+        };
       });
     }).catch(function (err) {
       if (err.name === 'AbortError') {
@@ -223,7 +233,21 @@ window.App = window.App || {};
     }
 
     var attempts = 0;
+    var rateLimitWaits = 0;
     var lastRaw = '';
+
+    /** Sleep that still honours Cancel. */
+    function delay(ms, signal) {
+      return new Promise(function (resolve, reject) {
+        var timer = setTimeout(resolve, ms);
+        if (signal) {
+          signal.addEventListener('abort', function () {
+            clearTimeout(timer);
+            reject(ApiError('cancelled', App.T.cancelled, ''));
+          });
+        }
+      });
+    }
 
     function attempt(requestOptions) {
       attempts++;
@@ -231,6 +255,20 @@ window.App = window.App || {};
 
       return send(body, apiKey, options.signal, options.timeoutMs).then(function (res) {
         lastRaw = res.text;
+
+        // 429 is the one status worth retrying by itself: it means "later",
+        // not "wrong". Making the operator click Re-run for it is a chore we
+        // can do for them. Bounded, so a throttled provider cannot hang the UI.
+        if (res.status === 429 && rateLimitWaits < RATE_LIMIT_RETRIES.length) {
+          var waitMs = res.retryAfter
+            ? Math.min(res.retryAfter * 1000, 30000)
+            : RATE_LIMIT_RETRIES[rateLimitWaits];
+          rateLimitWaits++;
+          if (options.onRetry) options.onRetry(rateLimitWaits, Math.round(waitMs / 1000));
+          return delay(waitMs, options.signal).then(function () {
+            return attempt(requestOptions);
+          });
+        }
 
         if (!res.ok) throw describeStatus(res.status, res.text);
 

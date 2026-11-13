@@ -349,7 +349,10 @@ window.App = window.App || {};
       // the operator waits for the sum; in parallel only for the slower one,
       // and the verifier is the fast model.
       var primary = App.OpenRouter.extract(modelId, prepared.pages, {
-        signal: session.controller.signal
+        signal: session.controller.signal,
+        onRetry: function (attempt, seconds) {
+          dom.loadingPhase.textContent = App.T.retryingRateLimit(attempt, seconds);
+        }
       });
 
       if (!doVerify) {

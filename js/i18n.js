@@ -114,7 +114,10 @@ window.App = window.App || {};
     errForbidden: 'Brak dostępu (403). Ten klucz może nie mieć uprawnień do wybranego modelu.',
     errNotFound: 'Nie znaleziono modelu (404). Identyfikator w config.js może być błędny lub model został wycofany.',
     errTooLarge: 'Żądanie za duże (413). Zmniejsz liczbę stron albo limit rozmiaru obrazu.',
-    errRateLimited: 'Przekroczono limit zapytań (429). Odczekaj chwilę i naciśnij „Odczytaj ponownie".',
+    errRateLimited: 'Dostawca modelu ogranicza liczbę zapytań (429) i ponowne próby nie pomogły. Model 8B ma tylko jednego dostawcę, więc nie ma na co przełączyć ruchu — wybierz model 30B lub 235B, albo odczekaj kilka minut.',
+    retryingRateLimit: function (attempt, seconds) {
+      return 'Limit zapytań u dostawcy — ponawiam za ' + seconds + ' s (próba ' + attempt + ' z 2)…';
+    },
     errProvider: function (status) {
       return 'Dostawca modelu zwrócił błąd (' + status + '). Spróbuj ponownie albo wybierz inny model.';
     },
