@@ -103,11 +103,19 @@ Picked in the header, remembered between sessions.
 
 | Model | Slug | Notes |
 |---|---|---|
-| Qwen3 VL 30B A3B Instruct | `qwen/qwen3-vl-30b-a3b-instruct` | **Default.** The largest model available (30B is the agreed ceiling). 134/143 on the sample set. |
-| Qwen3 VL 8B Instruct | `qwen/qwen3-vl-8b-instruct` | Faster and weaker. Also the verification model behind the measured confidence. |
+| Qwen3 VL 8B Instruct | `qwen/qwen3-vl-8b-instruct` | **Default.** Fastest. 136/143 on the sample set — but see the warning below. |
+| Qwen3 VL 30B A3B Instruct | `qwen/qwen3-vl-30b-a3b-instruct` | 134/143, slower, and never fabricated an identifier. |
+| Qwen3 VL 235B A22B Instruct | `qwen/qwen3-vl-235b-a22b-instruct` | 143/143, slowest. |
 
-Neither model can report its own confidence — both return a flat `0.95` for every field. That is
-why confidence is **measured** instead, by comparing two independent readings. See below.
+> **The 8B invents a NIP** when the employer block has none — one of its seven misses on the sample
+> set was a plausible ten-digit number that is not on the document. Nothing downstream can tell
+> that apart from a real reading. The review screen warns when the 8B is the primary reader, but
+> treat identifier fields on 8B output with particular suspicion. Three prompt attempts failed to
+> stop it; the 30B does not do this.
+
+No model reports its own confidence usefully — all three return near-flat values. Confidence is
+therefore **measured** by comparing two independent readings; the second reader is chosen
+automatically (8B→30B, 30B→8B, 235B→30B) so the two are never the same model.
 
 ## Output
 

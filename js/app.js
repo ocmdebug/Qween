@@ -354,13 +354,14 @@ window.App = window.App || {};
 
       if (!doVerify) {
         return primary.then(function (result) {
-          return { primary: result, verify: null, verifyError: null };
+          return { primary: result, verify: null, verifyError: null, verifierId: null };
         });
       }
 
       // Verification contributes only `record`, so it asks for nothing else.
       // A failure here must never cost us the primary result.
-      var second = App.OpenRouter.extract(App.Config.VERIFY.modelId, prepared.pages, {
+      var verifierId = verifyModelId();
+      var second = App.OpenRouter.extract(verifierId, prepared.pages, {
         signal: session.controller.signal,
         timeoutMs: App.Config.VERIFY.timeoutMs,
         lean: true
@@ -375,7 +376,8 @@ window.App = window.App || {};
         return {
           primary: pair[0],
           verify: pair[1].ok,
-          verifyError: pair[1].err
+          verifyError: pair[1].err,
+          verifierId: verifierId
         };
       });
     }).then(function (both) {
@@ -389,7 +391,7 @@ window.App = window.App || {};
         verifyError: both.verifyError ? both.verifyError.message : null
       }));
       if (both.verify) {
-        App.Agreement.apply(session.state, both.verify.record, App.Config.VERIFY.modelId);
+        App.Agreement.apply(session.state, both.verify.record, both.verifierId);
       }
       renderReview();
       show('review');
@@ -406,10 +408,14 @@ window.App = window.App || {};
     if (session.controller) session.controller.abort();
   }
 
+  /** The second reader for the currently selected model, or null if there is none. */
+  function verifyModelId() {
+    return App.Config.verifyModelFor(dom.modelSelect.value);
+  }
+
   /** Verification is on unless the operator turned it off, and needs a 2nd model. */
   function verifyWanted() {
-    return dom.verifyToggle.checked &&
-           App.Config.VERIFY.modelId !== dom.modelSelect.value;
+    return dom.verifyToggle.checked && !!verifyModelId();
   }
 
   /* --------------------------------------------------------------- review */
@@ -561,7 +567,13 @@ window.App = window.App || {};
     if (state.meta.verifyError) {
       dom.confNote.textContent = App.T.verifyFailed(state.meta.verifyError);
     } else if (measured) {
-      dom.confNote.textContent = App.T.confSourceAgreement(state.verifyModelId);
+      var text = App.T.confSourceAgreement(state.verifyModelId);
+      // The weakest model as the primary reader is worth saying out loud: it is
+      // the one that invented a NIP on a document that had none.
+      if (state.meta.modelId && state.meta.modelId.indexOf('8b') !== -1) {
+        text += ' ' + App.T.weakPrimaryWarning;
+      }
+      dom.confNote.textContent = text;
     } else if (!spread.usable) {
       var model = App.Config.modelById(dom.modelSelect.value);
       dom.confNote.textContent = App.T.confFlatBanner(model ? model.label : dom.modelSelect.value);

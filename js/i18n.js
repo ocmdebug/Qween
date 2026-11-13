@@ -233,6 +233,7 @@ window.App = window.App || {};
              ' — 100% oznacza, że oba odczyty są identyczne.';
     },
     confSourceSelfReported: 'Pewność podana przez sam model — jest zawodna. Włącz „drugą opinię”, aby ją zmierzyć.',
+    weakPrimaryWarning: 'Uwaga: odczyt główny wykonał model 8B — najmniej dokładny. Na próbkach zdarzyło mu się wpisać zmyślony NIP w dokumencie, który go nie zawierał. Zwróć szczególną uwagę na numery identyfikacyjne.',
     verifyFailed: function (reason) {
       return 'Druga opinia się nie powiodła (' + reason + '). Pokazana pewność pochodzi od samego modelu i jest zawodna.';
     },

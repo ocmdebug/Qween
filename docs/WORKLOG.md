@@ -2,6 +2,29 @@
 
 Append-only. Newest entry at the top.
 
+## 2026-11-13 — 235B back in the list, 8B as default
+
+**Done:**
+- All three models in the dropdown again, ordered 8B / 30B / 235B; `DEFAULT_MODEL_ID` is the 8B
+  (D34). Storage key bumped to `.v3` so a remembered choice does not hide the new default.
+- Replaced the fixed `VERIFY.modelId` with `verifyModelFor(primaryId)` (D35). Pairs are 8B→30B,
+  30B→8B, 235B→30B.
+- The review banner and the dropdown note both warn when the 8B is the primary reader.
+
+**Why:**
+- The previous verifier was the 8B. Making the 8B the default primary would have put both readings
+  on the same model: agreement would be meaningless, verification would have switched itself off
+  by the existing guard, and the confidence bars would simply have vanished with no error. Deriving
+  the pairing from the primary removes that failure mode permanently.
+
+**Problems:**
+- The 8B is the model that fabricated a NIP on the sample without one. That is the worst failure
+  mode for this tool and it is now the default. Flagged in the UI, the dropdown and the README,
+  but flagging is mitigation, not a fix. Worth revisiting with the manager if invented identifiers
+  show up in real work.
+
+**Next:** unchanged — the local server's URL and which models it will serve.
+
 ## 2026-11-13 — Manager's constraints: 30B ceiling, local server, 1150 px
 
 **Done:**

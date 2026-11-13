@@ -43,22 +43,35 @@ window.App = window.App || {};
    * ---------------------------------------------------------------------- */
   var MODELS = [
     {
-      id: 'qwen/qwen3-vl-30b-a3b-instruct',
-      localId: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
-      label: 'Qwen3 VL 30B A3B Instruct',
-      note: 'Domyślny. Najdokładniejszy z dostępnych.',
-      structured: true
-    },
-    {
       id: 'qwen/qwen3-vl-8b-instruct',
       localId: 'Qwen/Qwen3-VL-8B-Instruct',
       label: 'Qwen3 VL 8B Instruct',
-      note: 'Szybszy, mniej dokładny. Używany też jako druga opinia do pomiaru pewności.',
+      note: 'Domyślny. Najszybszy. Najniższa dokładność — potrafi zmyślić NIP, gdy go nie ma na dokumencie.',
+      structured: true
+    },
+    {
+      id: 'qwen/qwen3-vl-30b-a3b-instruct',
+      localId: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
+      label: 'Qwen3 VL 30B A3B Instruct',
+      note: 'Dokładniejszy niż 8B, wolniejszy.',
+      structured: true
+    },
+    {
+      id: 'qwen/qwen3-vl-235b-a22b-instruct',
+      localId: 'Qwen/Qwen3-VL-235B-A22B-Instruct',
+      label: 'Qwen3 VL 235B A22B Instruct',
+      note: 'Najdokładniejszy (bezbłędny na próbkach), ale najwolniejszy.',
       structured: true
     }
   ];
 
-  var DEFAULT_MODEL_ID = 'qwen/qwen3-vl-30b-a3b-instruct';
+  /* Manager, 2026-11-13: the 235B is back in the list, and the 8B is the
+   * default. Worth knowing what that combination costs: the 8B scored
+   * 136/143 on the sample set, and one of its misses was a FABRICATED NIP on
+   * a document that has none — a plausible invented identifier is the worst
+   * failure mode for a transcription tool, because nothing downstream can
+   * tell it from a real reading. See docs/EXTRACTION_TESTS.md. */
+  var DEFAULT_MODEL_ID = 'qwen/qwen3-vl-8b-instruct';
 
   /* ---------------------------------------------------------------------- *
    * API ENDPOINT
@@ -89,6 +102,19 @@ window.App = window.App || {};
   };
 
   function endpoint() { return API[API.mode]; }
+
+  /**
+   * Which model gives the second opinion for a given primary.
+   *
+   * Confidence is measured by agreement, which is meaningless if both reads
+   * come from the same model. Returns null when the list holds only one model,
+   * and the caller then skips verification and says so.
+   */
+  function verifyModelFor(primaryId) {
+    if (VERIFY.preferredId && VERIFY.preferredId !== primaryId) return VERIFY.preferredId;
+    var other = MODELS.filter(function (m) { return m.id !== primaryId; })[0];
+    return other ? other.id : null;
+  }
 
   /** The model name to send, which differs between OpenRouter and a local server. */
   function modelNameFor(modelId) {
@@ -145,10 +171,10 @@ window.App = window.App || {};
    * ---------------------------------------------------------------------- */
   var VERIFY = {
     enabledByDefault: true,
-    // With the 235B gone, the 30B's own confidence is a flat 0.95 for every
-    // field — so agreement with a second model is now the ONLY source of a
-    // meaningful confidence number, not merely a better one.
-    modelId: 'qwen/qwen3-vl-8b-instruct',
+    // Preferred second reader. Agreement needs two DIFFERENT models, so when
+    // the operator picks this one as the primary, `verifyModelFor` falls back
+    // to another from the list rather than silently disabling confidence.
+    preferredId: 'qwen/qwen3-vl-30b-a3b-instruct',
     // Verification must never hold up a result: if it fails or times out the
     // primary extraction still stands, with a note in the UI.
     timeoutMs: 120000
@@ -160,7 +186,9 @@ window.App = window.App || {};
     // overrides the default, so without this everyone would silently stay on
     // the 30B. Bump again if the default ever changes for a reason operators
     // should be re-exposed to. The API key is deliberately NOT versioned.
-    model: 'dococr.model.v2',
+    // Bumped whenever the default model changes: a remembered choice overrides
+    // the default, so without this nobody would ever see the new one.
+    model: 'dococr.model.v3',
     preprocess: 'dococr.preprocess',
     verify: 'dococr.verify'
   };
@@ -450,6 +478,7 @@ window.App = window.App || {};
     API: API,
     endpoint: endpoint,
     modelNameFor: modelNameFor,
+    verifyModelFor: verifyModelFor,
     FIELD_DEFS: FIELD_DEFS,
     EXTRA_DEFS: EXTRA_DEFS,
     EXPORT_ORDER: EXPORT_ORDER,

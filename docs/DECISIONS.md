@@ -285,6 +285,30 @@ ceiling and fast. Primary 30B + verifier 8B also happens to be the configuration
 about 20 s rather than 65 s.
 *Cost of the ceiling:* 134/143 on the sample set instead of 143/143.
 
+### D34 — The 235B returns to the dropdown; the 8B becomes the default (amends D31)
+Manager, same day, reversing part of D31.
+*What changed:* `MODELS` lists all three again, ordered 8B / 30B / 235B, and
+`DEFAULT_MODEL_ID` is the 8B. `STORAGE_KEYS.model` bumped to `.v3` so a remembered choice does not
+hide the new default.
+*Stated plainly, because it is a quality decision:* the 8B scored 136/143 on the sample set, and
+one of its misses was a **fabricated NIP** on a document that has none. A plausible invented
+identifier is the worst failure mode here — nothing downstream can distinguish it from a real
+reading, and the operator has no reason to doubt it. The review screen now warns when the 8B is
+the primary reader, and the model's own dropdown note says so too. That is mitigation, not a fix.
+*Revisit if:* operators start finding invented identifiers. The 30B never did this after the
+rule-11 prompt fix.
+
+### D35 — The verification model is chosen per run, not fixed
+*Problem the change created:* `VERIFY.modelId` was the 8B. With the 8B also the default primary,
+both readings would have come from the same model — agreement would be meaningless and the app
+would silently have disabled verification, leaving no confidence number at all.
+*Decision:* `App.Config.verifyModelFor(primaryId)` returns the preferred second reader (the 30B)
+unless that is the primary, in which case it picks another from the list. Resulting pairs:
+8B→30B, 30B→8B, 235B→30B. It returns null only if one model is configured, and the caller then
+skips verification and says so rather than pretending.
+*Why it matters:* confidence is the feature most sensitive to configuration changes, and it fails
+quietly. Deriving the pairing removes a whole class of "the bars disappeared" bug.
+
 ### D32 — The real deployment is a local inference server; OpenRouter was the test harness
 Manager: it will run on a local server; OpenRouter was only for testing.
 *What changed:* `App.Config.API` holds both endpoints. Switching is `API.mode = 'local'` plus the
