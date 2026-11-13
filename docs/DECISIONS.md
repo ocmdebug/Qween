@@ -285,6 +285,19 @@ ceiling and fast. Primary 30B + verifier 8B also happens to be the configuration
 about 20 s rather than 65 s.
 *Cost of the ceiling:* 134/143 on the sample set instead of 143/143.
 
+### D37 — Default back to the 30B; all three stay in the dropdown (amends D34)
+Oscar, 2026-11-13. D34 had made the 8B the default on the manager's instruction; Oscar's own
+instruction before that was the 30B, and this settles it in favour of the 30B. The 235B stays
+listed, as the manager asked. Storage key bumped to `.v4`.
+*Two reasons the 8B should not be the default, both measured rather than preferred:*
+1. It fabricated a NIP on a sample document that has none. Nothing downstream can distinguish an
+   invented identifier from a real reading, so it is the worst failure mode this tool has.
+2. On OpenRouter it is served by a **single provider** (Parasail), so when that throttles the
+   request returns 429 and there is nothing to reroute to. Observed today: the 8B returned 429
+   repeatedly while the 30B and 235B answered normally. The 30B has three providers.
+*Note for the local-server move:* reason 2 disappears there — provider routing is an OpenRouter
+concern. Reason 1 does not.
+
 ### D36 — One scan by default; the second opinion becomes opt-in (amends D29)
 Oscar, 2026-11-13: a single scan with the selected model.
 *What changed:* `VERIFY.enabledByDefault = false`, and the storage key bumped to `.v2` so a

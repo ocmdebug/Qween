@@ -103,15 +103,16 @@ Picked in the header, remembered between sessions.
 
 | Model | Slug | Notes |
 |---|---|---|
-| Qwen3 VL 8B Instruct | `qwen/qwen3-vl-8b-instruct` | **Default.** Fastest. 136/143 on the sample set — but see the warning below. |
-| Qwen3 VL 30B A3B Instruct | `qwen/qwen3-vl-30b-a3b-instruct` | 134/143, slower, and never fabricated an identifier. |
+| Qwen3 VL 30B A3B Instruct | `qwen/qwen3-vl-30b-a3b-instruct` | **Default.** 134/143 on the sample set, three providers on OpenRouter, never fabricated an identifier. |
+| Qwen3 VL 8B Instruct | `qwen/qwen3-vl-8b-instruct` | Fastest. 136/143 — but see the warnings below. |
 | Qwen3 VL 235B A22B Instruct | `qwen/qwen3-vl-235b-a22b-instruct` | 143/143, slowest. |
 
-> **The 8B invents a NIP** when the employer block has none — one of its seven misses on the sample
-> set was a plausible ten-digit number that is not on the document. Nothing downstream can tell
-> that apart from a real reading. The review screen warns when the 8B is the primary reader, but
-> treat identifier fields on 8B output with particular suspicion. Three prompt attempts failed to
-> stop it; the 30B does not do this.
+> **Two things about the 8B.** It **invents a NIP** when the employer block has none — one of its
+> misses was a plausible ten-digit number that is not on the document, and nothing downstream can
+> tell that apart from a real reading. Three prompt attempts failed to stop it; the 30B does not do
+> this. Separately, on OpenRouter it is served by a **single provider**, so when that provider
+> throttles you get HTTP 429 with nowhere to reroute. The app retries twice automatically, then
+> tells you to switch model.
 
 By default the app makes **one** request, with the model you selected.
 

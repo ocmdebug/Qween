@@ -46,14 +46,14 @@ window.App = window.App || {};
       id: 'qwen/qwen3-vl-8b-instruct',
       localId: 'Qwen/Qwen3-VL-8B-Instruct',
       label: 'Qwen3 VL 8B Instruct',
-      note: 'Domyślny. Najszybszy. Najniższa dokładność — potrafi zmyślić NIP, gdy go nie ma na dokumencie.',
+      note: 'Najszybszy, ale najmniej dokładny — potrafi zmyślić NIP, gdy go nie ma. Ma też tylko jednego dostawcę, więc bywa blokowany (błąd 429).',
       structured: true
     },
     {
       id: 'qwen/qwen3-vl-30b-a3b-instruct',
       localId: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
       label: 'Qwen3 VL 30B A3B Instruct',
-      note: 'Dokładniejszy niż 8B, wolniejszy.',
+      note: 'Domyślny. Dobra dokładność, stabilna dostępność.',
       structured: true
     },
     {
@@ -65,13 +65,14 @@ window.App = window.App || {};
     }
   ];
 
-  /* Manager, 2026-11-13: the 235B is back in the list, and the 8B is the
-   * default. Worth knowing what that combination costs: the 8B scored
-   * 136/143 on the sample set, and one of its misses was a FABRICATED NIP on
-   * a document that has none — a plausible invented identifier is the worst
-   * failure mode for a transcription tool, because nothing downstream can
-   * tell it from a real reading. See docs/EXTRACTION_TESTS.md. */
-  var DEFAULT_MODEL_ID = 'qwen/qwen3-vl-8b-instruct';
+  /* Oscar, 2026-11-13: the 30B is the default. All three stay in the dropdown.
+   *
+   * Two reasons it is not the 8B: the 8B fabricated a NIP on a sample document
+   * that has none (a plausible invented identifier is the worst failure mode
+   * here, because nothing downstream can tell it from a real reading), and on
+   * OpenRouter it is served by a single provider, so a throttle there returns
+   * 429 with nothing to reroute to. The 30B has three providers. */
+  var DEFAULT_MODEL_ID = 'qwen/qwen3-vl-30b-a3b-instruct';
 
   /* ---------------------------------------------------------------------- *
    * API ENDPOINT
@@ -199,7 +200,7 @@ window.App = window.App || {};
     // should be re-exposed to. The API key is deliberately NOT versioned.
     // Bumped whenever the default model changes: a remembered choice overrides
     // the default, so without this nobody would ever see the new one.
-    model: 'dococr.model.v3',
+    model: 'dococr.model.v4',
     preprocess: 'dococr.preprocess',
     // Bumped with the default flip to off, for the same reason as the model
     // key: a remembered "on" would override it and nobody would see the change.
