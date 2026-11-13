@@ -1,0 +1,38 @@
+# Secrets — never commit a real OpenRouter key
+txt
+.env
+.env.local
+*.key
+*.secret
+secrets.*
+
+# ---------------------------------------------------------------------------
+# NOT FOR A PUBLIC REPO
+#
+# GitHub Pages is free only on a public repository, and a public repository
+# publishes everything in it — not just the page. These are excluded because
+# they should not be on the open internet:
+#
+#   sample docuemnts/   medical referral forms. The data in them is invented,
+#                       but they are shaped like real patient records (PESEL,
+#                       name, address, employer) and they are not ours to
+#                       publish. Also contains the manager's internal mockup.
+#   main project...     the internal spec for the backend system.
+#
+# The app does NOT need any of this to run — it is test material.
+# If the repo is private (Pages needs GitHub Pro, or use Cloudflare Pages,
+# which serves private repos for free), delete these two lines.
+# ---------------------------------------------------------------------------
+sample docuemnts/
+main project documentation
+
+# OS / editor noise
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# Scratch
+*.log
+tmp/

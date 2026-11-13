@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document OCR — transkrypcja skierowań</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%23111113'/><rect x='4' y='4' width='8' height='1.4' fill='white'/><rect x='4' y='7' width='8' height='1.4' fill='white'/><rect x='4' y='10' width='5' height='1.4' fill='white'/></svg>">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===================================================== header ======= -->
+  <header class="header">
+    <span class="header__title">Document OCR</span>
+    <span class="header__subtitle">Skierowanie na badania lekarskie — transkrypcja</span>
+    <span class="header__spacer"></span>
+
+    <div class="header__group">
+      <label class="header__label" for="model-select">Model</label>
+      <select id="model-select" title="Model wizyjny użyty do odczytu"></select>
+      <span class="header__label" id="model-note"></span>
+    </div>
+
+    <button type="button" class="btn btn--small" id="settings-btn">Ustawienia</button>
+  </header>
+
+  <!-- ====================================================== error ======= -->
+  <div class="error-banner" id="error-banner" role="alert" hidden>
+    <div class="error-banner__body">
+      <div class="error-banner__title" id="error-title"></div>
+      <div class="error-banner__detail" id="error-detail" hidden></div>
+    </div>
+    <button type="button" class="btn btn--small" id="error-key-btn" hidden>Otwórz ustawienia</button>
+    <button type="button" class="btn btn--ghost btn--small" id="error-dismiss">Zamknij</button>
+  </div>
+
+  <main class="main">
+
+    <!-- ================================================== screen 1 ====== -->
+    <section class="screen" id="screen-upload">
+      <div class="upload">
+        <h1 class="upload__heading">Wczytaj dokument</h1>
+        <p class="upload__lede">
+          Przeciągnij zdjęcie lub skan skierowania na badania lekarskie.
+          Kilka plików traktowanych jest jako strony jednego dokumentu,
+          w kolejności dodawania.
+        </p>
+
+        <div class="dropzone" id="dropzone" tabindex="0" role="button"
+             aria-label="Upuść pliki tutaj lub naciśnij Enter, aby wybrać">
+          <span class="dropzone__title">Upuść pliki tutaj</span>
+          <span class="dropzone__hint">PNG · JPG · JPEG · WEBP · PDF</span>
+          <button type="button" class="btn btn--small" id="browse-btn">Wybierz pliki</button>
+          <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf" multiple hidden>
+        </div>
+
+        <ul class="file-list" id="file-list"></ul>
+
+        <p class="upload__summary" id="file-summary">Nie wybrano pliku.</p>
+        <p class="upload__payload" id="payload-line" hidden></p>
+        <p class="upload__note" id="upload-note" hidden></p>
+
+        <div class="upload__actions">
+          <button type="button" class="btn btn--primary" id="extract-btn" disabled>Odczytaj</button>
+          <button type="button" class="btn btn--ghost" id="clear-files-btn" hidden>Usuń wszystkie</button>
+          <label class="switch">
+            <input type="checkbox" id="verify-toggle" checked>
+            Druga opinia — zmierz pewność (wolniej, drożej)
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="preprocess-toggle">
+            Wstępna obróbka obrazu (skala szarości + kontrast)
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================== screen 2 ====== -->
+    <section class="screen review" id="screen-review" hidden>
+
+      <!-- ------------------------------------------------ podgląd ------ -->
+      <div class="pane pane--viewer">
+        <div class="pane__bar">
+          <button type="button" class="btn btn--icon btn--small" id="zoom-out" title="Pomniejsz">−</button>
+          <span class="zoom-label" id="zoom-label">100%</span>
+          <button type="button" class="btn btn--icon btn--small" id="zoom-in" title="Powiększ">+</button>
+          <button type="button" class="btn btn--small" id="fit-width">Dopasuj szerokość</button>
+          <button type="button" class="btn btn--small" id="fit-page">Dopasuj stronę</button>
+          <span class="pane__spacer"></span>
+          <div class="pager" id="pager" hidden>
+            <button type="button" class="btn btn--icon btn--small" id="page-prev" title="Poprzednia strona">‹</button>
+            <span class="page-label" id="page-label">1 / 1</span>
+            <button type="button" class="btn btn--icon btn--small" id="page-next" title="Następna strona">›</button>
+          </div>
+        </div>
+
+        <div class="stage" id="viewer-stage">
+          <img id="viewer-image" alt="Podgląd strony dokumentu" draggable="false">
+        </div>
+
+        <div class="viewer-caption" id="viewer-caption"></div>
+      </div>
+
+      <!-- ------------------------------------------------ formularz ---- -->
+      <div class="pane pane--form">
+        <div class="pane__bar">
+          <button type="button" class="btn btn--small" id="back-btn" title="Esc">← Wstecz</button>
+          <button type="button" class="btn btn--small" id="rerun-btn">Odczytaj ponownie</button>
+          <span class="pane__spacer"></span>
+          <button type="button" class="btn btn--small" id="copy-btn">Kopiuj JSON</button>
+          <button type="button" class="btn btn--primary btn--small" id="download-btn">Pobierz JSON</button>
+        </div>
+
+        <!-- ---------------------------------------------- przegląd ----- -->
+        <div class="review-head">
+          <div class="review-head__top">
+            <span class="prog-label" id="prog-label">Do decyzji: 0 z 0</span>
+            <span class="pane__spacer"></span>
+            <div class="tabs">
+              <button type="button" class="tab" id="tab-todo" aria-pressed="true">Wymagające uwagi (0)</button>
+              <button type="button" class="tab" id="tab-all" aria-pressed="false">Wszystkie pola (0)</button>
+            </div>
+          </div>
+          <div class="prog"><i id="prog-bar"></i></div>
+          <div class="counts" id="counts"></div>
+        </div>
+
+        <div class="form-scroll">
+          <div class="meta-line" id="meta-line"></div>
+          <div class="review-note" id="review-note" hidden></div>
+          <div class="review-note review-note--warn" id="conf-note" hidden></div>
+
+          <div id="record-form"></div>
+          <div id="extra-form" hidden></div>
+
+          <details class="panel" id="raw-panel" hidden>
+            <summary>Surowa odpowiedź</summary>
+            <div class="panel__body">
+              <p class="panel__hint">Dokładnie to, co zwrócił model, przed przetworzeniem.</p>
+              <pre class="raw-content" id="raw-content"></pre>
+            </div>
+          </details>
+        </div>
+
+        <div class="pane__bar pane__bar--footer">
+          <span class="kbd-hint"><kbd>Enter</kbd> zatwierdź pole</span>
+          <span class="kbd-hint"><kbd>N</kbd> następne do sprawdzenia</span>
+          <span class="kbd-hint"><kbd>Esc</kbd> wyjdź z pola</span>
+          <span class="pane__spacer"></span>
+          <button type="button" class="btn btn--small" id="copy-extra-btn">Kopiuj przegląd</button>
+          <button type="button" class="btn btn--primary btn--small" id="finish-btn" disabled>Zatwierdź dokument</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ======================================================== loading ===== -->
+<div class="loading" id="loading" hidden>
+  <div class="loading__card">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="loading__title" id="loading-phase">Odczytywanie dokumentu…</div>
+    <div class="loading__meta"><span id="loading-model"></span> · <span id="loading-pages"></span></div>
+    <div class="loading__elapsed" id="elapsed">0.0 s</div>
+    <button type="button" class="btn btn--small" id="cancel-btn">Anuluj</button>
+  </div>
+</div>
+
+<!-- ======================================================== settings ==== -->
+<dialog id="settings-dialog">
+  <div class="dialog__body">
+    <h2 class="dialog__title">Klucz API OpenRouter</h2>
+    <p class="dialog__text">
+      Klucz jest zapisywany w pamięci localStorage tej przeglądarki i wysyłany wyłącznie do
+      <code>openrouter.ai</code>. Nigdy nie trafia do plików projektu.
+      Każdy, kto ma dostęp do tego profilu przeglądarki, może go odczytać.
+    </p>
+    <label class="dialog__label" for="api-key-input">Klucz</label>
+    <input type="password" class="dialog__input" id="api-key-input"
+           placeholder="sk-or-v1-…" autocomplete="off" spellcheck="false">
+    <div class="dialog__status" id="key-status"></div>
+  </div>
+  <div class="dialog__actions">
+    <button type="button" class="btn btn--primary btn--small" id="save-key">Zapisz</button>
+    <button type="button" class="btn btn--small btn--danger" id="clear-key">Usuń klucz</button>
+    <span class="pane__spacer"></span>
+    <button type="button" class="btn btn--ghost btn--small" id="close-settings">Zamknij</button>
+  </div>
+</dialog>
+
+<!-- pdf.js (the only external dependency; PDF support degrades without it) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+<!-- Classic scripts, loaded in dependency order. Not ES modules, on purpose:
+     browsers block module scripts on file:// — see docs/DECISIONS.md D1. -->
+<script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/prompt.js"></script>
+<script src="js/image.js"></script>
+<script src="js/openrouter.js"></script>
+<script src="js/validate.js"></script>
+<script src="js/state.js"></script>
+<script src="js/agreement.js"></script>
+<script src="js/form.js"></script>
+<script src="js/viewer.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
