@@ -285,6 +285,21 @@ ceiling and fast. Primary 30B + verifier 8B also happens to be the configuration
 about 20 s rather than 65 s.
 *Cost of the ceiling:* 134/143 on the sample set instead of 143/143.
 
+### D36 — One scan by default; the second opinion becomes opt-in (amends D29)
+Oscar, 2026-11-13: a single scan with the selected model.
+*What changed:* `VERIFY.enabledByDefault = false`, and the storage key bumped to `.v2` so a
+remembered "on" does not override it. The toggle stays on the upload screen, and all the agreement
+machinery stays wired and tested.
+*What it costs, precisely:* with one read there is nothing to compare against, so confidence falls
+back to the model's self-report — a near-flat 0.95 across all 24 fields on every model we have.
+The bars render, but they carry no information, and the app says so in the banner above the form.
+The tiers that depended on confidence (`niepewne`, `sprawdź`) effectively stop firing.
+*What still works:* all of the validation — PESEL, NIP and REGON checksums, date and format
+checks, the birthdate/PESEL cross-check, `noPesel`/`noNip` agreement. That was always the reliable
+half (D22), and it is untouched. So is every error state, suggestion and operator action.
+*Revisit if:* the per-field confidence the manager originally asked for is needed in earnest.
+It is one constant, and the second read costs about 17 s in parallel.
+
 ### D34 — The 235B returns to the dropdown; the 8B becomes the default (amends D31)
 Manager, same day, reversing part of D31.
 *What changed:* `MODELS` lists all three again, ordered 8B / 30B / 235B, and

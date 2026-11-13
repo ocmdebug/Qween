@@ -113,9 +113,15 @@ Picked in the header, remembered between sessions.
 > treat identifier fields on 8B output with particular suspicion. Three prompt attempts failed to
 > stop it; the 30B does not do this.
 
-No model reports its own confidence usefully — all three return near-flat values. Confidence is
-therefore **measured** by comparing two independent readings; the second reader is chosen
-automatically (8B→30B, 30B→8B, 235B→30B) so the two are never the same model.
+By default the app makes **one** request, with the model you selected.
+
+No model reports its own confidence usefully — all three return a near-flat `0.95` across all 24
+fields, so with a single read the confidence bars are decoration and the app says so above the
+form. **Validation is unaffected** and is what catches real errors.
+
+Ticking **"Druga opinia"** on the upload screen adds a second read by a different model
+(8B→30B, 30B→8B, 235B→30B) and derives each field's confidence from how closely the two agree.
+Both requests go out in parallel, so it costs roughly 17 s rather than double the time.
 
 ## Output
 

@@ -170,7 +170,18 @@ window.App = window.App || {};
    * falls back to the model's own (flat, meaningless) numbers.
    * ---------------------------------------------------------------------- */
   var VERIFY = {
-    enabledByDefault: true,
+    /* Oscar, 2026-11-13: one scan with the selected model by default.
+     *
+     * The cost is specific and worth knowing: with a single read, confidence
+     * falls back to what the model reports about itself, and every model here
+     * returns a near-flat 0.95 for all 24 fields. The bars become decoration.
+     * The review screen still works — validation (checksums, formats,
+     * cross-checks) is unaffected and is what catches real errors.
+     *
+     * The operator can switch the second read back on per document with the
+     * toggle on the upload screen. Flip this to true to make that the default
+     * again. */
+    enabledByDefault: false,
     // Preferred second reader. Agreement needs two DIFFERENT models, so when
     // the operator picks this one as the primary, `verifyModelFor` falls back
     // to another from the list rather than silently disabling confidence.
@@ -190,7 +201,9 @@ window.App = window.App || {};
     // the default, so without this nobody would ever see the new one.
     model: 'dococr.model.v3',
     preprocess: 'dococr.preprocess',
-    verify: 'dococr.verify'
+    // Bumped with the default flip to off, for the same reason as the model
+    // key: a remembered "on" would override it and nobody would see the change.
+    verify: 'dococr.verify.v2'
   };
 
 
