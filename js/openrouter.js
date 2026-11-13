@@ -129,7 +129,8 @@ window.App = window.App || {};
     });
 
     var body = {
-      model: modelId,
+      // OpenRouter and the local server name the same model differently.
+      model: cfg.modelNameFor(modelId),
       temperature: cfg.LIMITS.temperature,
       max_tokens: cfg.LIMITS.maxTokens,
       messages: [
@@ -155,11 +156,13 @@ window.App = window.App || {};
   }
 
   function headers(apiKey) {
-    var h = {
-      'Authorization': 'Bearer ' + apiKey,
-      'Content-Type': 'application/json',
-      'X-Title': 'Document OCR'
-    };
+    var h = { 'Content-Type': 'application/json' };
+
+    // A local inference server needs no key and no OpenRouter metadata.
+    if (!App.Config.endpoint().requiresKey) return h;
+
+    h['Authorization'] = 'Bearer ' + apiKey;
+    h['X-Title'] = 'Document OCR';
     // Only send a referer for a real http(s) origin — never leak a local path.
     if (location.protocol === 'http:' || location.protocol === 'https:') {
       h['HTTP-Referer'] = location.origin;
@@ -181,7 +184,7 @@ window.App = window.App || {};
       else externalSignal.addEventListener('abort', function () { controller.abort(); });
     }
 
-    return fetch(App.Config.OPENROUTER_URL, {
+    return fetch(App.Config.endpoint().url, {
       method: 'POST',
       headers: headers(apiKey),
       body: JSON.stringify(body),
@@ -212,7 +215,7 @@ window.App = window.App || {};
     var options = opts || {};
     var apiKey = options.apiKey || Key.get();
 
-    if (!apiKey) {
+    if (!apiKey && App.Config.endpoint().requiresKey) {
       return Promise.reject(ApiError('no_key', App.T.errNoKey, ''));
     }
     if (!pages || !pages.length) {

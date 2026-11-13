@@ -175,6 +175,47 @@ field wrapper:
 - **Whole-document compliance score** — belongs in the model response (a `documentProbability`
   sibling to `record`), not in the form layer.
 
+## Running against a local model server
+
+This is the production target; OpenRouter was the test harness. Local servers (vLLM, Ollama,
+LM Studio, llama.cpp) expose the same OpenAI chat-completions shape, so the switch is config only.
+
+In `js/config.js`:
+
+```js
+var API = {
+  mode: 'local',                                        // was 'openrouter'
+  local: {
+    url: 'http://<server>:8000/v1/chat/completions',
+    requiresKey: false
+  }
+};
+```
+
+What that changes by itself:
+
+- requests go to the local URL
+- no `Authorization`, `X-Title` or `HTTP-Referer` header is sent
+- the Settings button hides, and the app stops asking for a key
+- the model name sent is `MODELS[].localId` (e.g. `Qwen/Qwen3-VL-30B-A3B-Instruct`) rather than
+  the OpenRouter slug, because the two name models differently
+
+Three things to check on the server side:
+
+1. **CORS.** The page runs in a browser, so the server must allow its origin. vLLM:
+   `--allowed-origins '["http://localhost:8000"]'`. Without this every request fails before it
+   is sent, and the browser console says so while the network tab shows nothing useful.
+2. **Structured output.** The app asks for `response_format: json_schema` with `strict: true`.
+   vLLM and recent Ollama support it. If yours does not, set `structured: false` on the model in
+   `MODELS` — the app then sends a plain-JSON instruction and parses defensively.
+3. **Both models must be served.** Confidence is measured by agreement between the primary model
+   and `VERIFY.modelId`, so the verifier has to be loaded too. If only one model is available,
+   turn the second opinion off in the UI and accept that confidence becomes meaningless — the 30B
+   reports a flat 0.95 for every field.
+
+On a local server there is no API key in anyone's browser, which removes the reason the proxy
+below was mandatory.
+
 ## Moving the key behind a proxy
 
 Required before this is hosted for more than one or two trusted machines. The change is confined

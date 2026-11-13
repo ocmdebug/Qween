@@ -29,33 +29,73 @@ window.App = window.App || {};
    * `structured` = model advertises strict structured outputs (json_schema).
    * Models without it fall back to a plain-JSON instruction + defensive parse.
    * ---------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------- *
+   * MODELS
+   *
+   * Manager, 2026-11-13: 30B is the CEILING. The 235B is not available, so it
+   * is not listed here — re-adding it is a deliberate act, not an accident.
+   *
+   * `id`      slug on OpenRouter (testing)
+   * `localId` model name on the local inference server (production) — these
+   *           differ, so both are kept and API.mode picks one
+   * `structured` model/server supports strict json_schema. Local servers vary;
+   *           set false and the app falls back to plain JSON + defensive parse.
+   * ---------------------------------------------------------------------- */
   var MODELS = [
     {
-      id: 'qwen/qwen3-vl-8b-instruct',
-      label: 'Qwen3 VL 8B Instruct',
-      note: 'Najszybszy i najtańszy. Zmyśla NIP, gdy go nie ma, i podaje tę samą pewność dla każdego pola. Tylko do testów.',
-      structured: true
-    },
-    {
       id: 'qwen/qwen3-vl-30b-a3b-instruct',
+      localId: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
       label: 'Qwen3 VL 30B A3B Instruct',
-      note: 'Tańszy i szybszy, ale podaje identyczną pewność dla każdego pola — progi pewności nie zadziałają.',
+      note: 'Domyślny. Najdokładniejszy z dostępnych.',
       structured: true
     },
     {
-      id: 'qwen/qwen3-vl-235b-a22b-instruct',
-      label: 'Qwen3 VL 235B A22B Instruct',
-      note: 'Domyślny. Najdokładniejszy i jedyny, który różnicuje pewność. Wolniejszy.',
+      id: 'qwen/qwen3-vl-8b-instruct',
+      localId: 'Qwen/Qwen3-VL-8B-Instruct',
+      label: 'Qwen3 VL 8B Instruct',
+      note: 'Szybszy, mniej dokładny. Używany też jako druga opinia do pomiaru pewności.',
       structured: true
     }
   ];
 
-  /* Oscar, 2026-11-13: the 235B is the default. It scored 143/143 on the sample
-   * set against the 30B's 134/143, and it is the only one of the three whose
-   * per-field confidence varies at all — the 30B returns a flat 0.95 for every
-   * field, which makes the whole review screen meaningless. Costs about
-   * $0.0018 per document instead of $0.0009, and is slower. */
-  var DEFAULT_MODEL_ID = 'qwen/qwen3-vl-235b-a22b-instruct';
+  var DEFAULT_MODEL_ID = 'qwen/qwen3-vl-30b-a3b-instruct';
+
+  /* ---------------------------------------------------------------------- *
+   * API ENDPOINT
+   *
+   * OpenRouter was only ever the test harness. Production is a local
+   * inference server on the same network. Both speak the OpenAI chat
+   * completions shape, so only these three values change.
+   *
+   * To switch to the local server, set mode to 'local' and point `local.url`
+   * at it. Nothing else in the app needs touching — see
+   * docs/ARCHITECTURE.md, "Running against a local model server".
+   * ---------------------------------------------------------------------- */
+  var API = {
+    mode: 'openrouter',          // 'openrouter' | 'local'
+
+    openrouter: {
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+      requiresKey: true
+    },
+
+    local: {
+      // vLLM:       http://<host>:8000/v1/chat/completions
+      // Ollama:     http://<host>:11434/v1/chat/completions
+      // LM Studio:  http://<host>:1234/v1/chat/completions
+      url: 'http://localhost:8000/v1/chat/completions',
+      requiresKey: false
+    }
+  };
+
+  function endpoint() { return API[API.mode]; }
+
+  /** The model name to send, which differs between OpenRouter and a local server. */
+  function modelNameFor(modelId) {
+    var model = MODELS.filter(function (m) { return m.id === modelId; })[0];
+    if (!model) return modelId;
+    return API.mode === 'local' ? (model.localId || model.id) : model.id;
+  }
 
   /* ---------------------------------------------------------------------- *
    * 2. EMPTY VALUE
@@ -72,7 +112,14 @@ window.App = window.App || {};
    * 3. LIMITS
    * ---------------------------------------------------------------------- */
   var LIMITS = {
-    maxImageSide: 2000,          // px, longest side after downscale
+    /* Manager, 2026-11-13: scale to roughly 1100-1200 px of HEIGHT before
+     * sending. These referrals are portrait A4, so height is the page's long
+     * edge — 1150 px is about 100 dpi, which still resolves handwriting while
+     * cutting the payload by around two thirds versus the old 2000 px.
+     * `maxImageSide` remains as a guard for landscape or odd-shaped scans, so
+     * a very wide image cannot blow up the request. */
+    targetHeight: 1150,
+    maxImageSide: 2000,          // px, safety cap on the long edge
     jpegQuality: 0.85,
     maxPages: 8,                 // pages sent in one request
     // The 235B with the record+confidence+extra schema has been measured at
@@ -98,7 +145,10 @@ window.App = window.App || {};
    * ---------------------------------------------------------------------- */
   var VERIFY = {
     enabledByDefault: true,
-    modelId: 'qwen/qwen3-vl-30b-a3b-instruct',
+    // With the 235B gone, the 30B's own confidence is a flat 0.95 for every
+    // field — so agreement with a second model is now the ONLY source of a
+    // meaningful confidence number, not merely a better one.
+    modelId: 'qwen/qwen3-vl-8b-instruct',
     // Verification must never hold up a result: if it fails or times out the
     // primary extraction still stands, with a note in the UI.
     timeoutMs: 120000
@@ -115,7 +165,6 @@ window.App = window.App || {};
     verify: 'dococr.verify'
   };
 
-  var OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
   /* ---------------------------------------------------------------------- *
    * 4. FIELD_DEFS — the contract fields, in display order, grouped.
@@ -398,7 +447,9 @@ window.App = window.App || {};
     EMPTY_VALUE: EMPTY_VALUE,
     LIMITS: LIMITS,
     STORAGE_KEYS: STORAGE_KEYS,
-    OPENROUTER_URL: OPENROUTER_URL,
+    API: API,
+    endpoint: endpoint,
+    modelNameFor: modelNameFor,
     FIELD_DEFS: FIELD_DEFS,
     EXTRA_DEFS: EXTRA_DEFS,
     EXPORT_ORDER: EXPORT_ORDER,

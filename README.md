@@ -103,9 +103,11 @@ Picked in the header, remembered between sessions.
 
 | Model | Slug | Notes |
 |---|---|---|
-| Qwen3 VL 235B A22B Instruct | `qwen/qwen3-vl-235b-a22b-instruct` | **Default.** 143/143 on the sample set, and the only model whose per-field confidence varies — the review screen does not function without that. ~$0.0018/document, slower. |
-| Qwen3 VL 30B A3B Instruct | `qwen/qwen3-vl-30b-a3b-instruct` | Cheaper and faster, but returns a flat `0.95` for every field, so confidence thresholds never fire. |
-| Qwen3 VL 8B Instruct | `qwen/qwen3-vl-8b-instruct` | Testing only. **Fabricates a NIP when the document has none**, and also returns flat confidence. |
+| Qwen3 VL 30B A3B Instruct | `qwen/qwen3-vl-30b-a3b-instruct` | **Default.** The largest model available (30B is the agreed ceiling). 134/143 on the sample set. |
+| Qwen3 VL 8B Instruct | `qwen/qwen3-vl-8b-instruct` | Faster and weaker. Also the verification model behind the measured confidence. |
+
+Neither model can report its own confidence — both return a flat `0.95` for every field. That is
+why confidence is **measured** instead, by comparing two independent readings. See below.
 
 ## Output
 
@@ -166,6 +168,26 @@ in its own collapsible panel with its own copy button. It is deliberately **excl
 - Seven contract fields (`nationality`, `birthdate`, `email`, `phone`, `regon`, `country_company`,
   and a true `noNip`) do not appear on this document type at all. They are verified to come back
   as `"not found"`, but their extraction path is untested.
+
+## Where the models run
+
+OpenRouter is the **test** configuration. Production is a **local inference server**, and
+switching is config only — `API.mode = 'local'` plus its URL in `js/config.js`. See
+`docs/ARCHITECTURE.md`, "Running against a local model server", for the three things to check on
+the server (CORS, structured-output support, and having both models loaded).
+
+On a local server no API key exists in anyone's browser, which removes the deployment problem
+described further down.
+
+## Image handling
+
+Pages are scaled to about **1150 px of height** before being sent (portrait A4, so height is the
+long edge). Measured on the sample set: 1194×1600 → 858×1150, roughly half the pixels and 46 % of
+the payload, with **no loss of accuracy** — the 30B made exactly the same two mistakes at 1150 px
+as it did at full resolution, and no new ones. Small images are never upscaled.
+
+Change `LIMITS.targetHeight` in `js/config.js` if documents with finer handwriting start losing
+characters.
 
 ## A note on confidence
 

@@ -270,6 +270,50 @@ verifier would run in roughly 20 s and still produce measured confidence, at a c
 
 ---
 
+## Manager's constraints, 2026-11-13 (late, and they reverse earlier choices)
+
+### D31 — 30B is the ceiling; the 235B is removed (supersedes D28)
+Manager: the 235B is not available, 30B maximum.
+*What changed:* `MODELS` now lists the 30B and the 8B only. The 235B was deleted rather than
+commented out, so bringing it back is a deliberate act.
+*Consequence that matters:* the 235B was the only model whose self-reported confidence varied at
+all. **Measured confidence by two-model agreement (D29) is therefore no longer an improvement — it
+is the only way this app can produce a confidence number.** Without it the 30B reports a flat 0.95
+on every field and the whole review screen goes inert.
+*So:* the verification model is now the 8B (`VERIFY.modelId`), which is both allowed under the
+ceiling and fast. Primary 30B + verifier 8B also happens to be the configuration that runs in
+about 20 s rather than 65 s.
+*Cost of the ceiling:* 134/143 on the sample set instead of 143/143.
+
+### D32 — The real deployment is a local inference server; OpenRouter was the test harness
+Manager: it will run on a local server; OpenRouter was only for testing.
+*What changed:* `App.Config.API` holds both endpoints. Switching is `API.mode = 'local'` plus the
+server's URL. Local servers speak the same OpenAI chat-completions shape, so `openrouter.js` is the
+only file involved, and it now sends no `Authorization`, no `X-Title` and no `HTTP-Referer` when
+the endpoint declares `requiresKey: false`.
+*Also:* `MODELS[].localId` exists because a local server names models differently
+(`Qwen/Qwen3-VL-30B-A3B-Instruct`) than OpenRouter does (`qwen/qwen3-vl-30b-a3b-instruct`).
+*This resolves the security problem from D12/D6 outright* — on a local server there is no key in
+anyone's browser, so the proxy that was mandatory before go-live is no longer needed for that
+reason. The settings dialog hides itself when no key is required.
+*Watch out for:* strict `json_schema` support varies by server. vLLM and recent Ollama handle it;
+if yours does not, set `structured: false` on the model and the defensive-parse fallback takes
+over. CORS also has to allow the page's origin, which is a server-side setting.
+
+### D33 — Images are scaled to ~1150 px of height, not 2000 px on the long edge
+Manager: scale to roughly 1100–1200 px height before scanning.
+*What changed:* `LIMITS.targetHeight = 1150` drives the scale; `maxImageSide` stays only as a guard
+so a landscape or oddly-shaped scan cannot produce a huge request. Never upscales.
+*Measured:* the sample pages go 1194×1600 → 858×1150, about 52 % of the pixels and 46 % of the
+payload (795 KB → 369 KB).
+*Verified it costs nothing:* re-ran the handwritten KOP-BUD referral through the 30B at 1150 px.
+10 of 12 key fields correct, and the two misses (`ul. Szyby Rycerskie 12`, `Górnica`) are **the
+same two it already got wrong at full resolution** — no new errors introduced by the downscale.
+*Revisit if:* a document with smaller handwriting starts losing characters; raise `targetHeight`
+and re-run the sample set.
+
+---
+
 ### Where later validation hooks in (now implemented — see js/validate.js)
 - **PESEL checksum** → `js/state.js`, in the `pesel` field's normaliser slot; result would set
   `status` + a remark on that field's state object.

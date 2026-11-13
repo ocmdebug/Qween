@@ -2,6 +2,40 @@
 
 Append-only. Newest entry at the top.
 
+## 2026-11-13 — Manager's constraints: 30B ceiling, local server, 1150 px
+
+**Done:**
+- Removed the 235B. `MODELS` is now the 30B (default) and the 8B (D31).
+- Moved the verification model to the 8B, since the 30B is now the primary.
+- Added `App.Config.API` with both the OpenRouter and local-server endpoints, plus
+  `MODELS[].localId` because the two name models differently. No key, `X-Title` or `HTTP-Referer`
+  is sent when the endpoint declares `requiresKey: false`, and the Settings button hides (D32).
+- Image scaling now driven by `LIMITS.targetHeight = 1150` instead of a 2000 px long edge;
+  `maxImageSide` kept as a guard for landscape scans. PDF rendering uses the same target (D33).
+- Documented the local-server migration in `docs/ARCHITECTURE.md` with the three server-side
+  gotchas: CORS, structured-output support, and needing both models loaded.
+
+**Why:**
+- These reverse earlier decisions (D28 made the 235B the default), so each one is recorded against
+  the decision it supersedes rather than quietly edited over.
+
+**Problems:**
+- The 235B was the only model whose self-reported confidence varied. Under the 30B ceiling,
+  **measured confidence by agreement is no longer an improvement — it is the only way to get a
+  confidence number at all.** If the local server ends up serving only one model, the second
+  opinion cannot run and the review screen loses its confidence signal entirely.
+- Accuracy drops from 143/143 to 134/143 with the 30B as primary. That is the cost of the ceiling.
+
+**Verified:**
+- Downscaling to 1150 px costs nothing. Re-ran the handwritten KOP-BUD referral through the 30B at
+  858×1150: 10 of 12 key fields correct, and the two misses are the same two it already got wrong
+  at full resolution. Payload 795 KB → 369 KB.
+
+**Next:** point `API.mode` at the real server once its address and loaded models are known.
+
+**Blocked on:** the local server's URL, which models it will serve, and whether it supports strict
+`json_schema`.
+
 ## 2026-11-13 — Iteration 2: per-field confidence, validation and the review screen
 
 **Done:**

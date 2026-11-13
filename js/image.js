@@ -127,8 +127,23 @@ window.App = window.App || {};
 
   /* --------------------------------------------------------------- scaling */
 
-  function drawScaled(source, srcWidth, srcHeight, maxSide) {
-    var scale = Math.min(1, maxSide / Math.max(srcWidth, srcHeight));
+  /**
+   * Scale factor for a page image.
+   *
+   * Driven by HEIGHT (the manager's spec: ~1100-1200 px), because these are
+   * portrait A4 referrals and height is what determines whether a line of
+   * handwriting is still legible. `maxSide` stays as a guard so an unusually
+   * wide or landscape scan cannot produce a huge payload.
+   * Never upscales: a small original is sent as-is.
+   */
+  function scaleFactor(srcWidth, srcHeight, targetHeight, maxSide) {
+    var byHeight = targetHeight / srcHeight;
+    var byLongEdge = maxSide / Math.max(srcWidth, srcHeight);
+    return Math.min(1, byHeight, byLongEdge);
+  }
+
+  function drawScaled(source, srcWidth, srcHeight, targetHeight, maxSide) {
+    var scale = scaleFactor(srcWidth, srcHeight, targetHeight, maxSide);
     var canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(srcWidth * scale));
     canvas.height = Math.max(1, Math.round(srcHeight * scale));
@@ -176,7 +191,13 @@ window.App = window.App || {};
           chain = chain.then(function () {
             return pdf.getPage(pageNumber).then(function (page) {
               var base = page.getViewport({ scale: 1 });
-              var scale = Math.min(4, options.maxSide / Math.max(base.width, base.height));
+              // A PDF has no inherent pixel size, so render straight to the
+              // target height (capped, so a wide page cannot run away).
+              var scale = Math.min(
+                4,
+                options.targetHeight / base.height,
+                options.maxSide / Math.max(base.width, base.height)
+              );
               var viewport = page.getViewport({ scale: scale });
               var canvas = document.createElement('canvas');
               canvas.width = Math.round(viewport.width);
@@ -222,6 +243,7 @@ window.App = window.App || {};
   function load(files, opts) {
     var cfg = App.Config.LIMITS;
     var options = {
+      targetHeight: (opts && opts.targetHeight) || cfg.targetHeight,
       maxSide: (opts && opts.maxSide) || cfg.maxImageSide,
       quality: (opts && opts.quality) || cfg.jpegQuality,
       maxPages: (opts && opts.maxPages) || cfg.maxPages,
@@ -242,6 +264,7 @@ window.App = window.App || {};
         var isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
         if (isPdf) {
           return renderPdf(file, {
+            targetHeight: options.targetHeight,
             maxSide: options.maxSide,
             quality: options.quality,
             preprocess: options.preprocess,
@@ -257,7 +280,9 @@ window.App = window.App || {};
         return decodeImage(file).then(function (bitmap) {
           var w = bitmap.width || bitmap.naturalWidth;
           var h = bitmap.height || bitmap.naturalHeight;
-          var fitsAlready = Math.max(w, h) <= options.maxSide;
+          // "Already small enough" now means it is at or under the target
+          // height, not under the old long-edge cap.
+          var fitsAlready = scaleFactor(w, h, options.targetHeight, options.maxSide) >= 1;
           var alreadyJpeg = file.type === 'image/jpeg';
 
           // Small JPEG and no preprocessing requested -> send the original bytes.
@@ -275,7 +300,7 @@ window.App = window.App || {};
             });
           }
 
-          var canvas = drawScaled(bitmap, w, h, options.maxSide);
+          var canvas = drawScaled(bitmap, w, h, options.targetHeight, options.maxSide);
           if (options.preprocess) preprocessCanvas(canvas);
           pages.push(canvasToPage(canvas, file.name, 1, options));
           if (bitmap.close) bitmap.close();

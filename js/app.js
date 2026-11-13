@@ -144,7 +144,13 @@ window.App = window.App || {};
       updateKeyStatus();
     });
 
-    if (!App.OpenRouter.Key.get()) openSettings();
+    // A local inference server needs no key, so do not greet the operator with
+    // a dialog asking for one.
+    if (!App.Config.endpoint().requiresKey) {
+      dom.settingsBtn.hidden = true;
+    } else if (!App.OpenRouter.Key.get()) {
+      openSettings();
+    }
   }
 
   /* ------------------------------------------------------------ file input */
